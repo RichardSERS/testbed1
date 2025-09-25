@@ -1,96 +1,74 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <title>3D Model Viewer</title>
   <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
   <style>
-    html, body {
+    body {
       margin: 0;
-      padding: 0;
-      height: 100%;
-      background-color: #000;
+      background-color: #121212;
+      color: white;
       font-family: sans-serif;
-    }
-    model-viewer {
-      width: 100vw;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
       height: 100vh;
+      overflow: hidden;
     }
-    #version-label {
+    #loadingBox {
       position: absolute;
-      top: 10px;
-      left: 10px;
-      background: rgba(0,0,0,0.6);
-      color: white;
-      padding: 4px 10px;
-      border-radius: 4px;
-      font-size: 14px;
-      z-index: 1000;
+      top: 20px;
+      left: 20px;
+      background: rgba(0,0,0,0.7);
+      padding: 10px 15px;
+      border-radius: 5px;
+      font-size: 16px;
+      z-index: 10;
     }
-    #progress-bar {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      width: 250px;
-      transform: translate(-50%, -50%);
-      z-index: 1000;
-      text-align: center;
-      color: white;
-      font-size: 18px;
-      font-weight: bold;
+    #viewer {
+      width: 100%;
+      height: 100%;
     }
   </style>
 </head>
 <body>
-  <div id="version-label">Version: dropbox-v1</div>
-  <div id="progress-bar">Loading 3D model...</div>
-
-  <model-viewer
-    id="model"
-    src="https://www.dropbox.com/scl/fi/xypwpzallqyxakul4gl6i/model.glb?rlkey=x0sagceclsb6hnyrfxdv15z45&st=ex15m51n&dl=1"
-    alt="3D model"
-    shadow-intensity="1"
+  <div id="loadingBox">Loading 3D model...</div>
+  <model-viewer id="viewer" src="model.glb"
     camera-controls
     auto-rotate
-    disable-zoom="false"
-    exposure="1.0"
-    interaction-prompt="when-focused"
     ar
-    ar-modes="webxr scene-viewer quick-look"
-    environment-image="neutral"
+    exposure="1"
+    shadow-intensity="1"
     camera-orbit="0deg 75deg auto"
-    min-camera-orbit="auto 20deg auto"
+    min-camera-orbit="auto 30deg auto"
     max-camera-orbit="auto 90deg auto"
-    camera-target="0m 0m 0m"
+    interaction-prompt="none"
+    interaction-policy="allow-when-focused"
     loading="eager"
-    auto-rotate-delay="2000"
-    interaction-prompt-style="wiggle"
-    fullscreen
-  ></model-viewer>
+    reveal="auto"
+    disable-zoom="false"
+    alt="3D model">
+  </model-viewer>
 
   <script>
-    const modelViewer = document.getElementById('model');
-    const progressBar = document.getElementById('progress-bar');
+    const modelViewer = document.getElementById('viewer');
+    const loadingBox = document.getElementById('loadingBox');
 
     modelViewer.addEventListener('progress', (event) => {
-      const progress = event.detail.totalProgress;
-      if (progress < 1) {
-        progressBar.textContent = `Loading 3D model... ${Math.round(progress * 100)}%`;
-      } else {
-        progressBar.style.display = 'none';
-      }
+      const progress = Math.round(event.detail.totalProgress * 100);
+      loadingBox.textContent = `Loading 3D model: ${progress}%`;
     });
 
     modelViewer.addEventListener('load', () => {
-      progressBar.style.display = 'none';
+      loadingBox.style.display = 'none';
     });
 
-    // Fallback timeout (20s)
     setTimeout(() => {
-      if (progressBar.style.display !== 'none') {
-        progressBar.textContent = "Model failed to load. Try refreshing.";
+      if (loadingBox.style.display !== 'none') {
+        loadingBox.textContent = 'Model viewer fallback triggered';
       }
-    }, 20000);
+    }, 15000); // Fallback timeout in case it fails
   </script>
 </body>
 </html>
