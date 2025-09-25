@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>3D Model Viewer – Flat Orbit</title>
+  <title>3D Model Viewer – Side Orbit</title>
   <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
   <style>
     body { margin: 0; background: #111; color: white; font-family: sans-serif; }
@@ -30,20 +30,19 @@
     environment-image="neutral"
     exposure="1.0"
 
-    camera-orbit="0deg 90deg 3m"
-    min-camera-orbit="auto 80deg 0.5m"
-    max-camera-orbit="auto 100deg 6m"
+    camera-orbit="0deg 0deg 3m"
+    min-camera-orbit="auto auto 1.5m"
+    max-camera-orbit="auto auto 6m"
     min-field-of-view="10deg"
     max-field-of-view="75deg"
-    min-polar-angle="80deg"
-    max-polar-angle="100deg"
+    min-polar-angle="-10deg"
+    max-polar-angle="10deg"
     min-azimuth-angle="-180deg"
     max-azimuth-angle="180deg">
 
     <button slot="fullscreen-button" style="position:absolute;top:10px;right:10px;z-index:10;">⛶</button>
   </model-viewer>
 
-  <div class="version-box">v3.0 – Flat Orbit</div>
+  <div class="version-box">v3.1 – Side Orbit, Zoom Balanced</div>
 </body>
 </html>
-
