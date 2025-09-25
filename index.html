@@ -2,15 +2,36 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>3D Model Viewer with Axes</title>
+  <title>3D Model Viewer with Axis HUD</title>
   <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
   <style>
     body { margin: 0; background-color: #111; }
     model-viewer { width: 100vw; height: 100vh; }
+
+    .axis-hud {
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
+      width: 80px;
+      height: 80px;
+      background: rgba(0,0,0,0.6);
+      border-radius: 8px;
+      padding: 5px;
+      font-size: 12px;
+      text-align: center;
+      color: white;
+    }
+    .axis-arrow {
+      font-weight: bold;
+      margin: 2px 0;
+    }
+    .x { color: red; }
+    .y { color: lime; }
+    .z { color: deepskyblue; }
   </style>
 </head>
 <body>
-  <model-viewer id="viewer"
+  <model-viewer
     src="model.glb"
     alt="3D model"
     camera-controls
@@ -18,41 +39,15 @@
     auto-rotate-delay="2000"
     shadow-intensity="1"
     environment-image="neutral"
+    min-field-of-view="10deg"
+    max-field-of-view="75deg"
     exposure="1.0">
   </model-viewer>
 
-  <script type="module">
-    import * as THREE from 'https://unpkg.com/three@0.150.1/build/three.module.js';
-
-    const viewer = document.querySelector('#viewer');
-
-    viewer.addEventListener('load', () => {
-      const scene = viewer.scene;
-
-      // Create axis arrows
-      const arrowX = new THREE.ArrowHelper(
-        new THREE.Vector3(1, 0, 0), // X direction
-        new THREE.Vector3(0, 0, 0), // origin
-        2,                          // length
-        0xff0000                    // red
-      );
-      const arrowY = new THREE.ArrowHelper(
-        new THREE.Vector3(0, 1, 0), // Y direction
-        new THREE.Vector3(0, 0, 0),
-        2,
-        0x00ff00                    // green
-      );
-      const arrowZ = new THREE.ArrowHelper(
-        new THREE.Vector3(0, 0, 1), // Z direction
-        new THREE.Vector3(0, 0, 0),
-        2,
-        0x0000ff                    // blue
-      );
-
-      scene.add(arrowX);
-      scene.add(arrowY);
-      scene.add(arrowZ);
-    });
-  </script>
+  <div class="axis-hud">
+    <div class="axis-arrow x">X → Right</div>
+    <div class="axis-arrow y">Y → Forward</div>
+    <div class="axis-arrow z">Z → Up</div>
+  </div>
 </body>
 </html>
