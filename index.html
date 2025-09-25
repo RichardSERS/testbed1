@@ -85,12 +85,11 @@
     auto-rotate-delay="2000"
     shadow-intensity="1"
     environment-image="neutral"
-    camera-orbit="90deg 90deg 3m"
-    min-camera-orbit="auto 60deg auto"
-    max-camera-orbit="auto 100deg auto"
+    camera-orbit="0deg 0deg 3m"
+    min-camera-orbit="auto 0deg 1m"
+    max-camera-orbit="auto 90deg auto"
     min-field-of-view="15deg"
     max-field-of-view="70deg"
-    disable-zoom="false"
     exposure="1.0"
     interaction-prompt="auto"
     ar
@@ -99,7 +98,7 @@
     <button slot="fullscreen-button">⛶</button>
   </model-viewer>
 
-  <div class="version-box">v2.2</div>
+  <div class="version-box">v2.3</div>
 
   <script>
     const viewer = document.getElementById('modelViewer');
