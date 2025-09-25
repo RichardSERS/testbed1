@@ -40,29 +40,24 @@
 <body>
 
 <div id="loading">Loading 3D model...</div>
-<div id="version">v3.2</div>
+<div id="version">v3.3</div>
 
 <model-viewer
   id="viewer"
   src="model.glb"
   alt="3D Model"
   camera-controls
-  touch-action="pan-y"
   auto-rotate
+  disable-pan
+  touch-action="none"
+  camera-orbit="0deg 90deg auto"
+  min-camera-orbit="auto 90deg auto"
+  max-camera-orbit="auto 90deg auto"
+  min-field-of-view="15deg"
+  max-field-of-view="90deg"
   exposure="1"
   environment-image="neutral"
   shadow-intensity="1"
-  ar
-  autoplay
-  camera-orbit="0deg 90deg auto"
-  min-camera-orbit="auto 45deg auto"
-  max-camera-orbit="auto 135deg auto"
-  min-field-of-view="15deg"
-  max-field-of-view="90deg"
-  interaction-prompt="none"
-  disable-pan
-  enable-pan
-  disable-tap
   style="background-color: #111;"
 >
 </model-viewer>
