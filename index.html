@@ -40,7 +40,7 @@
 <body>
 
 <div id="loading">Loading 3D model...</div>
-<div id="version">v3.5</div>
+<div id="version">v3.6</div>
 
 <model-viewer
   id="viewer"
@@ -49,13 +49,10 @@
   camera-controls
   auto-rotate
   disable-pan
-  touch-action="none"
-  camera-orbit="0deg 0deg auto"
-  min-camera-orbit="auto 0deg auto"
+  camera-orbit="0deg 90deg auto"
+  min-camera-orbit="auto 90deg auto"
   max-camera-orbit="auto 90deg auto"
-  min-field-of-view="10deg"
-  max-field-of-view="90deg"
-  min-camera-distance="0.5m"
+  min-camera-distance="0.1m"
   max-camera-distance="100m"
   exposure="1"
   environment-image="neutral"
