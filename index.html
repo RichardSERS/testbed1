@@ -1,42 +1,298 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>3D Model Viewer – Locked Side Orbit</title>
-  <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
-  <style>
-    body { margin: 0; background: #111; color: white; font-family: sans-serif; }
-    model-viewer { width: 100vw; height: 100vh; }
-    .version-box {
-      position: absolute;
-      bottom: 10px;
-      right: 10px;
-      font-size: 12px;
-      color: #aaa;
-      background: rgba(0,0,0,0.6);
-      padding: 4px 8px;
-      border-radius: 6px;
-    }
-  </style>
+<meta charset="utf-8" />
+<title>3D Walk / Orbit Viewer</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  html, body { height: 100%; margin: 0; background:#0f1115; color:#e8edf2; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+  #app { position: fixed; inset: 0; }
+  .ui {
+    position: fixed; top: 12px; left: 12px; display: flex; gap: 8px; flex-wrap: wrap; z-index: 10;
+    background: rgba(0,0,0,0.45); backdrop-filter: blur(6px); border:1px solid rgba(255,255,255,0.08);
+    border-radius: 12px; padding: 10px;
+  }
+  .ui button, .ui label {
+    font-size: 13px; color:#e8edf2; background: #1b1f2a; border:1px solid #2b3242; border-radius: 8px;
+    padding: 8px 10px; cursor: pointer;
+  }
+  .ui button:hover { background:#222836; }
+  .ui .group { display:flex; gap:6px; align-items:center; }
+  .panel {
+    position: fixed; top: 12px; right: 12px; width: 280px; z-index: 10;
+    background: rgba(0,0,0,0.45); border:1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 10px;
+    font-size: 12px; line-height: 1.4;
+  }
+  .panel table { width: 100%; border-collapse: collapse; }
+  .panel th, .panel td { text-align: left; padding: 2px 4px; }
+  .panel th { color:#a9b4c8; font-weight: 600; }
+  .footer {
+    position: fixed; bottom: 12px; right:12px; z-index:10; font-size:12px; color:#a9b4c8;
+    background: rgba(0,0,0,0.45); border:1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 6px 10px;
+  }
+  canvas { display:block; }
+</style>
 </head>
 <body>
-  <model-viewer id="viewer"
-    src="model.glb"
-    alt="3D model"
-    camera-controls
-    shadow-intensity="1"
-    environment-image="neutral"
-    exposure="1.0"
+<div id="app"></div>
 
-    camera-orbit="0deg 90deg 30m"
-    min-camera-orbit="auto 90deg 3m"
-    max-camera-orbit="auto 90deg 100m"
-    min-azimuth-angle="-180deg"
-    max-azimuth-angle="180deg">
+<!-- Controls -->
+<div class="ui">
+  <div class="group">
+    <button id="modeOrbit">Orbit</button>
+    <button id="modeWalk">Walk</button>
+  </div>
+  <div class="group">
+    <button id="resetView">Reset</button>
+    <label><input type="checkbox" id="lockGround" checked> Lock to Ground</label>
+  </div>
+  <div class="group">
+    <button data-rot="x">Flip X</button>
+    <button data-rot="y">Flip Y</button>
+    <button data-rot="z">Flip Z</button>
+  </div>
+  <div class="group">
+    <button id="copyOri">Copy Orientation</button>
+    <button id="fullscreen">Fullscreen</button>
+  </div>
+</div>
 
-    <button slot="fullscreen-button" style="position:absolute;top:10px;right:10px;z-index:10;">⛶</button>
-  </model-viewer>
+<!-- Orientation panel -->
+<div class="panel">
+  <div style="font-weight:600; margin-bottom:6px;">Orientation (live)</div>
+  <table>
+    <tr><th>Yaw (°)</th><td id="yaw">0</td></tr>
+    <tr><th>Pitch (°)</th><td id="pitch">0</td></tr>
+    <tr><th>Roll (°)</th><td id="roll">0</td></tr>
+    <tr><th>Cam X</th><td id="cx">0</td></tr>
+    <tr><th>Cam Y</th><td id="cy">0</td></tr>
+    <tr><th>Cam Z</th><td id="cz">0</td></tr>
+    <tr><th>Height ↑ ground</th><td id="hgt">0</td></tr>
+    <tr><th>Distance to center</th><td id="dist">0</td></tr>
+  </table>
+</div>
 
-  <div class="version-box">v3.5 – Locked flat orbit, 3–100m zoom</div>
+<div class="footer">WASD to move (Walk), Mouse to look (click canvas)</div>
+
+<script type="module">
+  import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
+  import { GLTFLoader } from 'https://unpkg.com/three@0.160.0/examples/jsm/loaders/GLTFLoader.js';
+  import { OrbitControls } from 'https://unpkg.com/three@0.160.0/examples/jsm/controls/OrbitControls.js';
+  import { PointerLockControls } from 'https://unpkg.com/three@0.160.0/examples/jsm/controls/PointerLockControls.js';
+
+  // --- renderer / scene / camera ---
+  const app = document.getElementById('app');
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+  app.appendChild(renderer.domElement);
+
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x0f1115);
+
+  const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 200000);
+  camera.position.set(50, 20, 50);
+
+  // Lights
+  const hemi = new THREE.HemisphereLight(0xffffff, 0x444444, 0.7);
+  hemi.position.set(0, 200, 0);
+  scene.add(hemi);
+
+  const dir = new THREE.DirectionalLight(0xffffff, 0.8);
+  dir.position.set(100, 200, 100);
+  dir.castShadow = false; // keep VRAM light
+  scene.add(dir);
+
+  // Small axis helper at origin
+  const axes = new THREE.AxesHelper(5);
+  scene.add(axes);
+
+  // Load model
+  const loader = new GLTFLoader();
+  let model, bbox, center = new THREE.Vector3(), size = new THREE.Vector3();
+  let groundY = 0;
+
+  function recenter(object) {
+    bbox = new THREE.Box3().setFromObject(object);
+    bbox.getCenter(center);
+    bbox.getSize(size);
+    // Recenter model to origin so orbit/walk are sensible
+    object.position.sub(center);
+    // Recompute ground after recenter
+    const b2 = new THREE.Box3().setFromObject(object);
+    groundY = b2.min.y; // lowest Y of model
+  }
+
+  loader.load('model.glb', (gltf) => {
+    model = gltf.scene;
+    scene.add(model);
+    recenter(model);
+    setInitialViews();
+  }, (xhr) => {
+    // could hook a progress bar here: xhr.loaded / xhr.total
+  }, (err) => {
+    console.error('GLB load error', err);
+  });
+
+  // --- Controls: Orbit and Walk ---
+  const orbit = new OrbitControls(camera, renderer.domElement);
+  orbit.enableDamping = true;
+  orbit.dampingFactor = 0.08;
+  orbit.target.set(0, 0, 0);
+  orbit.minDistance = 3;   // will be resized after model loads
+  orbit.maxDistance = 500; // ditto
+  // Keep tilt near flat
+  const smallBand = THREE.MathUtils.degToRad(10);
+  orbit.minPolarAngle = Math.PI/2 - smallBand;
+  orbit.maxPolarAngle = Math.PI/2 + smallBand;
+
+  const walk = new PointerLockControls(camera, renderer.domElement);
+  let walkEnabled = false;
+  let moveF = false, moveB = false, moveL = false, moveR = false;
+  const walkSpeed = 25; // units / second, will be scaled to model size
+  let speedScale = 1;
+  const yOffset = 1.8; // eye height above ground
+
+  function setInitialViews() {
+    // Choose sensible distances based on model size
+    const radius = Math.max(size.x, size.z) * 0.75 + 3;
+    speedScale = Math.max(5, Math.min(100, Math.max(size.x, size.z) / 50));
+    // Orbit: side-on, not top-down
+    orbit.target.set(0, 0, 0);
+    camera.position.set(radius, Math.max(5, size.y * 0.25), radius);
+    orbit.update();
+    // Walk starting point: just outside the model on X axis
+    camera.position.set(radius, Math.max(groundY + yOffset, 1.8), 0);
+  }
+
+  // UI hooks
+  const modeOrbitBtn = document.getElementById('modeOrbit');
+  const modeWalkBtn  = document.getElementById('modeWalk');
+  const resetBtn     = document.getElementById('resetView');
+  const lockGroundEl = document.getElementById('lockGround');
+  const copyBtn      = document.getElementById('copyOri');
+  const fullscreen   = document.getElementById('fullscreen');
+
+  modeOrbitBtn.onclick = () => {
+    if (walkEnabled) {
+      walk.unlock();
+      walkEnabled = false;
+      renderer.domElement.style.cursor = 'grab';
+    }
+  };
+
+  modeWalkBtn.onclick = () => {
+    walk.lock();
+  };
+
+  walk.addEventListener('lock', () => {
+    walkEnabled = true;
+    renderer.domElement.style.cursor = 'none';
+  });
+  walk.addEventListener('unlock', () => {
+    walkEnabled = false;
+    renderer.domElement.style.cursor = 'grab';
+  });
+
+  resetBtn.onclick = () => {
+    if (!model) return;
+    recenter(model);
+    setInitialViews();
+  };
+
+  fullscreen.onclick = () => {
+    if (!document.fullscreenElement) renderer.domElement.requestFullscreen();
+    else document.exitFullscreen();
+  };
+
+  // Flip axes (rotate model by 180° on X/Y/Z)
+  document.querySelectorAll('button[data-rot]').forEach(btn => {
+    btn.onclick = () => {
+      if (!model) return;
+      const ax = btn.getAttribute('data-rot');
+      if (ax === 'x') model.rotateX(Math.PI);
+      if (ax === 'y') model.rotateY(Math.PI);
+      if (ax === 'z') model.rotateZ(Math.PI);
+    };
+  });
+
+  // WASD for walk
+  function onKey(e, down) {
+    if (e.code === 'KeyW') moveF = down;
+    if (e.code === 'KeyS') moveB = down;
+    if (e.code === 'KeyA') moveL = down;
+    if (e.code === 'KeyD') moveR = down;
+  }
+  window.addEventListener('keydown', e => onKey(e, true));
+  window.addEventListener('keyup',   e => onKey(e, false));
+
+  // Copy orientation
+  function rad2deg(r){ return (r * 180 / Math.PI); }
+  copyBtn.onclick = () => {
+    const e = camera.rotation;
+    const pos = camera.position;
+    const text = `yaw=${(rad2deg(e.y)).toFixed(1)}°, pitch=${(rad2deg(e.x)).toFixed(1)}°, roll=${(rad2deg(e.z)).toFixed(1)}°
+pos=(${pos.x.toFixed(2)}, ${pos.y.toFixed(2)}, ${pos.z.toFixed(2)})`;
+    navigator.clipboard.writeText(text);
+  };
+
+  // Resize
+  window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+
+  // HUD updates
+  const yawEl = document.getElementById('yaw');
+  const pitchEl = document.getElementById('pitch');
+  const rollEl = document.getElementById('roll');
+  const cxEl = document.getElementById('cx');
+  const cyEl = document.getElementById('cy');
+  const czEl = document.getElementById('cz');
+  const hgtEl = document.getElementById('hgt');
+  const distEl = document.getElementById('dist');
+
+  // Animate
+  const clock = new THREE.Clock();
+  function animate() {
+    requestAnimationFrame(animate);
+    const dt = Math.min(0.05, clock.getDelta());
+
+    if (walkEnabled) {
+      const v = walk.getObject();
+      const speed = walkSpeed * speedScale * dt;
+      if (moveF) v.translateZ(-speed);
+      if (moveB) v.translateZ( speed);
+      if (moveL) v.translateX(-speed);
+      if (moveR) v.translateX( speed);
+
+      // Lock to ground if desired
+      if (lockGroundEl.checked) {
+        const minY = (groundY || 0) + yOffset;
+        if (v.position.y < minY) v.position.y = minY;
+      }
+    } else {
+      orbit.update();
+    }
+
+    // HUD
+    const e = camera.rotation;
+    yawEl.textContent   = (rad2deg(e.y)).toFixed(1);
+    pitchEl.textContent = (rad2deg(e.x)).toFixed(1);
+    rollEl.textContent  = (rad2deg(e.z)).toFixed(1);
+    cxEl.textContent = camera.position.x.toFixed(2);
+    cyEl.textContent = camera.position.y.toFixed(2);
+    czEl.textContent = camera.position.z.toFixed(2);
+    const d = camera.position.length();
+    distEl.textContent = d.toFixed(2);
+    const hg = (camera.position.y - (groundY || 0));
+    hgtEl.textContent = hg.toFixed(2);
+
+    renderer.render(scene, camera);
+  }
+  animate();
+</script>
 </body>
 </html>
