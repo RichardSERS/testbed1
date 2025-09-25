@@ -1,100 +1,106 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <title>3D Model Viewer</title>
-    <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
-    <style>
-      body { margin: 0; background: #111; color: white; font-family: sans-serif; }
-      #loader {
-        position: absolute;
-        top: 0; left: 0;
-        width: 100vw;
-        height: 100vh;
-        background: #111;
-        color: white;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        z-index: 999;
+<head>
+  <meta charset="UTF-8" />
+  <title>3D Model Viewer</title>
+  <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+  <style>
+    body {
+      margin: 0;
+      background: #111;
+      font-family: sans-serif;
+    }
+
+    model-viewer {
+      width: 100vw;
+      height: 100vh;
+    }
+
+    #loading-message {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      color: white;
+      background: rgba(0,0,0,0.6);
+      padding: 8px 12px;
+      border-radius: 4px;
+      z-index: 2;
+    }
+
+    #version {
+      position: absolute;
+      bottom: 10px;
+      left: 10px;
+      color: white;
+      background: rgba(0,0,0,0.6);
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 12px;
+      z-index: 2;
+    }
+
+    #fullscreen-button {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      padding: 8px 12px;
+      font-size: 14px;
+      background: white;
+      color: black;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      z-index: 2;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="loading-message">Loading 3D model...</div>
+  <div id="version">Version: v1.0</div>
+  <button id="fullscreen-button">Fullscreen</button>
+
+  <model-viewer
+    id="viewer"
+    src="https://github.com/RichardSERS/testbed1/raw/main/model.glb"
+    alt="3D model"
+    auto-rotate
+    camera-controls
+    shadow-intensity="1"
+    background-color="#222"
+    exposure="1.1"
+    max-camera-orbit="auto 90deg auto"
+    min-camera-orbit="auto 10deg auto"
+    interaction-prompt="none"
+  >
+  </model-viewer>
+
+  <script>
+    const viewer = document.querySelector('model-viewer');
+    const loadingMessage = document.getElementById('loading-message');
+    const fullscreenButton = document.getElementById('fullscreen-button');
+
+    // Hide loading message when model is loaded
+    viewer.addEventListener('load', () => {
+      loadingMessage.style.display = 'none';
+    });
+
+    // Add fallback in case load fails or times out
+    setTimeout(() => {
+      if (loadingMessage.style.display !== 'none') {
+        loadingMessage.innerText = "⚠️ Model took too long to load or failed.";
       }
-      #progress-bar {
-        width: 50%;
-        height: 10px;
-        background: #333;
-        margin-top: 20px;
-        border-radius: 5px;
-        overflow: hidden;
+    }, 15000); // 15 seconds timeout
+
+    // Fullscreen toggle
+    fullscreenButton.addEventListener('click', () => {
+      if (document.fullscreenElement) {
+        document.exitFullscreen();
+      } else {
+        viewer.requestFullscreen();
       }
-      #progress {
-        height: 100%;
-        background: #0f0;
-        width: 0%;
-        transition: width 0.3s;
-      }
-      model-viewer {
-        width: 100vw;
-        height: 100vh;
-      }
-      #version {
-        position: absolute;
-        bottom: 10px;
-        right: 10px;
-        font-size: 12px;
-        color: #ccc;
-      }
-    </style>
-  </head>
-  <body>
-    <div id="loader">
-      <div>Loading 3D model...</div>
-      <div id="progress-bar"><div id="progress"></div></div>
-    </div>
+    });
+  </script>
 
-    <model-viewer
-      src=src="https://github.com/RichardSERS/testbed1/raw/main/model.glb"
-      alt="3D model"
-      auto-rotate
-      camera-controls
-      background-color="#222"
-      exposure="1.1"
-      shadow-intensity="1"
-      camera-orbit="0deg 75deg auto"
-      min-camera-orbit="auto 45deg auto"
-      max-camera-orbit="auto 85deg auto"
-      disable-zoom="false"
-      ar
-      ar-modes="webxr scene-viewer quick-look"
-      loading="eager"
-      reveal="auto"
-      id="viewer">
-    </model-viewer>
-
-    <div id="version">v2.0</div>
-
-    <script>
-      const viewer = document.querySelector('model-viewer');
-      const loader = document.getElementById('loader');
-      const progressBar = document.getElementById('progress');
-
-      // Progress event handling
-      viewer.addEventListener('progress', (event) => {
-        const percent = Math.round(event.detail.totalProgress * 100);
-        progressBar.style.width = percent + '%';
-      });
-
-      // Load complete
-      viewer.addEventListener('load', () => {
-        loader.style.display = 'none';
-        console.log('Model loaded successfully');
-      });
-
-      // Fallback: force hide loader after 20 seconds
-      setTimeout(() => {
-        loader.style.display = 'none';
-        console.warn('Model viewer fallback triggered (timeout)');
-      }, 20000);
-    </script>
-  </body>
+</body>
 </html>
