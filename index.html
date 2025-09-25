@@ -56,12 +56,12 @@
       auto-rotate
       auto-rotate-delay="2000"
       disable-pan
-      max-camera-orbit="180deg 90deg"
-      min-camera-orbit="-180deg 0deg"
-      min-field-of-view="15deg"
-      max-field-of-view="75deg"
+      max-camera-orbit="360deg 90deg"
+      min-camera-orbit="0deg 0deg"
+      min-field-of-view="10deg"
+      max-field-of-view="80deg"
       field-of-view="25deg"
-      camera-orbit="0deg 90deg auto"
+      camera-orbit="180deg 45deg auto"
       exposure="1.1"
       interaction-prompt="none"
       ar
@@ -71,28 +71,25 @@
       poster=""
       touch-action="pan-y"
       style="background-color: black;"
-      fullscreen
     >
     </model-viewer>
 
-    <div id="version">v2025.09.25</div>
+    <div id="version">v2025.09.25-b</div>
   </div>
 
   <script>
     const viewer = document.getElementById('viewer');
     const loadingText = document.getElementById('loading');
 
-    // Hide loading message when model loads
     viewer.addEventListener('load', () => {
       loadingText.style.display = 'none';
     });
 
-    // Fallback in case model fails to load
     setTimeout(() => {
       if (loadingText.style.display !== 'none') {
-        loadingText.innerText = "Model viewer timeout or error.";
+        loadingText.innerText = "Model failed to load.";
       }
-    }, 20000); // 20 seconds
+    }, 20000);
   </script>
 </body>
 </html>
