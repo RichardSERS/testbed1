@@ -1,57 +1,23 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="utf-8">
-  <title>3D Model Viewer</title>
-  <style>
-    body { margin: 0; overflow: hidden; }
-    canvas { display: block; }
-  </style>
-</head>
-<body>
-<script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.152.2/examples/js/loaders/GLTFLoader.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.152.2/examples/js/controls/OrbitControls.js"></script>
-
-<script>
-  // Setup scene
-  const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 1000);
-  const renderer = new THREE.WebGLRenderer({antialias: true});
-  renderer.setSize(window.innerWidth, window.innerHeight);
-  document.body.appendChild(renderer.domElement);
-
-  // Lights
-  const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1.0);
-  scene.add(hemiLight);
-  const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
-  dirLight.position.set(5,10,7);
-  scene.add(dirLight);
-
-  // Controls
-  const controls = new THREE.OrbitControls(camera, renderer.domElement);
-  camera.position.set(0, 2, 5);
-  controls.update();
-
-  // Load model (replace with your file name if not model.glb)
-  const loader = new THREE.GLTFLoader();
-  loader.load('model.glb', function(gltf) {
-    scene.add(gltf.scene);
-  });
-
-  // Animate
-  function animate() {
-    requestAnimationFrame(animate);
-    controls.update();
-    renderer.render(scene, camera);
-  }
-  animate();
-
-  window.addEventListener('resize', () => {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-  });
-</script>
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <title>3D Model Viewer</title>
+    <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+    <style>
+      body { margin: 0; background: #111; color: white; text-align: center; }
+      model-viewer { width: 100vw; height: 100vh; }
+    </style>
+  </head>
+  <body>
+    <model-viewer
+      src="model.glb"
+      alt="3D model"
+      auto-rotate
+      camera-controls
+      background-color="#222"
+      exposure="1.1"
+      shadow-intensity="1">
+    </model-viewer>
+  </body>
 </html>
