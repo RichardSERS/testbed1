@@ -17,10 +17,22 @@
       padding: 4px 8px;
       border-radius: 6px;
     }
+    .loading-text {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: rgba(0,0,0,0.6);
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 14px;
+      color: #0ff;
+    }
   </style>
 </head>
 <body>
-  <model-viewer id="modelViewer"
+  <div class="loading-text" id="status">Loading…</div>
+
+  <model-viewer id="viewer"
     src="model.glb"
     alt="3D model"
     camera-controls
@@ -30,18 +42,28 @@
     environment-image="neutral"
     min-field-of-view="10deg"
     max-field-of-view="75deg"
-    exposure="1.0"
-    interaction-prompt="auto"
-    ar
-    ar-modes="webxr scene-viewer quick-look">
+    exposure="1.0">
 
-    <!-- Debug axis arrows (generated with make_axes.py) -->
-    <model src="axes.glb" scale="0.2 0.2 0.2" position="0 0 0"></model>
+    <!-- Axis arrows -->
+    <model id="axes" src="axes.glb" scale="0.2 0.2 0.2" position="0 0 0"></model>
 
     <!-- Fullscreen button -->
     <button slot="fullscreen-button" style="position:absolute;top:10px;right:10px;z-index:10;">⛶</button>
   </model-viewer>
 
-  <div class="version-box">v-debug-axes</div>
+  <div class="version-box">v-debug-axes-2</div>
+
+  <script>
+    const viewer = document.getElementById('viewer');
+    const status = document.getElementById('status');
+
+    viewer.addEventListener('load', () => {
+      status.textContent = "✅ Model loaded";
+    });
+
+    viewer.addEventListener('error', (event) => {
+      status.textContent = "❌ Load error: " + event.detail?.message;
+    });
+  </script>
 </body>
 </html>
