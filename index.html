@@ -2,105 +2,97 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>3D Model Viewer</title>
   <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
   <style>
     body {
       margin: 0;
+      background-color: black;
       font-family: sans-serif;
-      background-color: #111;
-      color: white;
+      overflow: hidden;
     }
-
-    model-viewer {
+    #wrapper {
+      position: relative;
       width: 100vw;
       height: 100vh;
-      --progress-bar-color: #00ffff;
     }
-
-    .progress-bar {
-      position: absolute;
-      top: 10px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: #222;
-      border: 1px solid #555;
-      border-radius: 5px;
-      width: 300px;
-      height: 20px;
-      overflow: hidden;
-      z-index: 10;
-    }
-
-    .progress {
+    model-viewer {
+      width: 100%;
       height: 100%;
-      background: #00ffff;
-      width: 0%;
+      background-color: #000;
     }
-
-    .loading-text {
+    #loading {
       position: absolute;
-      top: 40px;
-      left: 50%;
-      transform: translateX(-50%);
-      font-size: 16px;
-      color: #aaa;
-      z-index: 10;
+      top: 15px;
+      left: 15px;
+      color: white;
+      font-size: 1.2rem;
+      z-index: 999;
+      background: rgba(0,0,0,0.6);
+      padding: 6px 12px;
+      border-radius: 8px;
     }
-
-    .version-box {
+    #version {
       position: absolute;
-      bottom: 10px;
-      right: 10px;
-      font-size: 12px;
-      color: #666;
-      z-index: 10;
+      bottom: 15px;
+      left: 15px;
+      color: white;
+      font-size: 0.9rem;
+      opacity: 0.6;
     }
   </style>
 </head>
 <body>
-  <div class="progress-bar" id="progressBar"><div class="progress" id="progress"></div></div>
-  <div class="loading-text" id="loadingText">Loading 3D model...</div>
+  <div id="wrapper">
+    <div id="loading">Loading 3D model...</div>
 
-  <model-viewer
-    id="modelViewer"
-    src="model.glb"
-    alt="3D model"
-    camera-controls
-    auto-rotate
-    auto-rotate-delay="1000"
-    shadow-intensity="1"
-    environment-image="neutral"
-    ar
-    ar-modes="webxr scene-viewer quick-look"
-    camera-orbit="0deg 90deg 2.5m"
-    exposure="1.0"
-    interaction-prompt="auto"
-  >
-    <button slot="fullscreen-button" style="position: absolute; top: 10px; right: 10px; z-index: 10;">⛶</button>
-  </model-viewer>
+    <model-viewer 
+      id="viewer"
+      src="model.glb"
+      alt="3D Model"
+      shadow-intensity="1"
+      camera-controls
+      auto-rotate
+      auto-rotate-delay="2000"
+      disable-pan
+      max-camera-orbit="180deg 90deg"
+      min-camera-orbit="-180deg 0deg"
+      min-field-of-view="15deg"
+      max-field-of-view="75deg"
+      field-of-view="25deg"
+      camera-orbit="0deg 90deg auto"
+      exposure="1.1"
+      interaction-prompt="none"
+      ar
+      ar-modes="webxr scene-viewer quick-look"
+      loading="eager"
+      autoplay
+      poster=""
+      touch-action="pan-y"
+      style="background-color: black;"
+      fullscreen
+    >
+    </model-viewer>
 
-  <div class="version-box">v2.1</div>
+    <div id="version">v2025.09.25</div>
+  </div>
 
   <script>
-    const viewer = document.getElementById('modelViewer');
-    const progressBar = document.getElementById('progress');
-    const progressContainer = document.getElementById('progressBar');
-    const loadingText = document.getElementById('loadingText');
+    const viewer = document.getElementById('viewer');
+    const loadingText = document.getElementById('loading');
 
-    viewer.addEventListener('progress', (event) => {
-      const progress = event.detail.totalProgress || 0;
-      progressBar.style.width = `${progress * 100}%`;
-    });
-
+    // Hide loading message when model loads
     viewer.addEventListener('load', () => {
-      progressContainer.style.display = 'none';
       loadingText.style.display = 'none';
     });
 
-    viewer.addEventListener('error', () => {
-      loadingText.textContent = "❌ Failed to load model.";
-    });
+    // Fallback in case model fails to load
+    setTimeout(() => {
+      if (loadingText.style.display !== 'none') {
+        loadingText.innerText = "Model viewer timeout or error.";
+      }
+    }, 20000); // 20 seconds
   </script>
 </body>
 </html>
