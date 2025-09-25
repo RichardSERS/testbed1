@@ -5,102 +5,92 @@
   <title>3D Model Viewer</title>
   <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
   <style>
-    body {
+    html, body {
       margin: 0;
-      background: #111;
+      padding: 0;
+      height: 100%;
+      background-color: #000;
       font-family: sans-serif;
     }
-
     model-viewer {
       width: 100vw;
       height: 100vh;
     }
-
-    #loading-message {
+    #version-label {
       position: absolute;
       top: 10px;
       left: 10px;
-      color: white;
       background: rgba(0,0,0,0.6);
-      padding: 8px 12px;
-      border-radius: 4px;
-      z-index: 2;
-    }
-
-    #version {
-      position: absolute;
-      bottom: 10px;
-      left: 10px;
       color: white;
-      background: rgba(0,0,0,0.6);
       padding: 4px 10px;
       border-radius: 4px;
-      font-size: 12px;
-      z-index: 2;
-    }
-
-    #fullscreen-button {
-      position: absolute;
-      top: 10px;
-      right: 10px;
-      padding: 8px 12px;
       font-size: 14px;
-      background: white;
-      color: black;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      z-index: 2;
+      z-index: 1000;
+    }
+    #progress-bar {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 250px;
+      transform: translate(-50%, -50%);
+      z-index: 1000;
+      text-align: center;
+      color: white;
+      font-size: 18px;
+      font-weight: bold;
     }
   </style>
 </head>
 <body>
-
-  <div id="loading-message">Loading 3D model...</div>
-  <div id="version">Version: v1.0</div>
-  <button id="fullscreen-button">Fullscreen</button>
+  <div id="version-label">Version: dropbox-v1</div>
+  <div id="progress-bar">Loading 3D model...</div>
 
   <model-viewer
-    id="viewer"
-    src="https://github.com/RichardSERS/testbed1/raw/main/model.glb"
+    id="model"
+    src="https://www.dropbox.com/scl/fi/xypwpzallqyxakul4gl6i/model.glb?rlkey=x0sagceclsb6hnyrfxdv15z45&st=ex15m51n&dl=1"
     alt="3D model"
-    auto-rotate
-    camera-controls
     shadow-intensity="1"
-    background-color="#222"
-    exposure="1.1"
+    camera-controls
+    auto-rotate
+    disable-zoom="false"
+    exposure="1.0"
+    interaction-prompt="when-focused"
+    ar
+    ar-modes="webxr scene-viewer quick-look"
+    environment-image="neutral"
+    camera-orbit="0deg 75deg auto"
+    min-camera-orbit="auto 20deg auto"
     max-camera-orbit="auto 90deg auto"
-    min-camera-orbit="auto 10deg auto"
-    interaction-prompt="none"
-  >
-  </model-viewer>
+    camera-target="0m 0m 0m"
+    loading="eager"
+    auto-rotate-delay="2000"
+    interaction-prompt-style="wiggle"
+    fullscreen
+  ></model-viewer>
 
   <script>
-    const viewer = document.querySelector('model-viewer');
-    const loadingMessage = document.getElementById('loading-message');
-    const fullscreenButton = document.getElementById('fullscreen-button');
+    const modelViewer = document.getElementById('model');
+    const progressBar = document.getElementById('progress-bar');
 
-    // Hide loading message when model is loaded
-    viewer.addEventListener('load', () => {
-      loadingMessage.style.display = 'none';
-    });
-
-    // Add fallback in case load fails or times out
-    setTimeout(() => {
-      if (loadingMessage.style.display !== 'none') {
-        loadingMessage.innerText = "⚠️ Model took too long to load or failed.";
-      }
-    }, 15000); // 15 seconds timeout
-
-    // Fullscreen toggle
-    fullscreenButton.addEventListener('click', () => {
-      if (document.fullscreenElement) {
-        document.exitFullscreen();
+    modelViewer.addEventListener('progress', (event) => {
+      const progress = event.detail.totalProgress;
+      if (progress < 1) {
+        progressBar.textContent = `Loading 3D model... ${Math.round(progress * 100)}%`;
       } else {
-        viewer.requestFullscreen();
+        progressBar.style.display = 'none';
       }
     });
-  </script>
 
+    modelViewer.addEventListener('load', () => {
+      progressBar.style.display = 'none';
+    });
+
+    // Fallback timeout (20s)
+    setTimeout(() => {
+      if (progressBar.style.display !== 'none') {
+        progressBar.textContent = "Model failed to load. Try refreshing.";
+      }
+    }, 20000);
+  </script>
 </body>
 </html>
