@@ -2,11 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>3D Walk / Orbit Viewer</title>
+<title>3D Walk / Orbit Viewer + Progress</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <style>
   html, body { height: 100%; margin: 0; background:#0f1115; color:#e8edf2; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
   #app { position: fixed; inset: 0; }
+  canvas { display:block; }
+
+  /* UI */
   .ui {
     position: fixed; top: 12px; left: 12px; display: flex; gap: 8px; flex-wrap: wrap; z-index: 10;
     background: rgba(0,0,0,0.45); backdrop-filter: blur(6px); border:1px solid rgba(255,255,255,0.08);
@@ -18,6 +21,7 @@
   }
   .ui button:hover { background:#222836; }
   .ui .group { display:flex; gap:6px; align-items:center; }
+
   .panel {
     position: fixed; top: 12px; right: 12px; width: 280px; z-index: 10;
     background: rgba(0,0,0,0.45); border:1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 10px;
@@ -26,11 +30,29 @@
   .panel table { width: 100%; border-collapse: collapse; }
   .panel th, .panel td { text-align: left; padding: 2px 4px; }
   .panel th { color:#a9b4c8; font-weight: 600; }
+
   .footer {
     position: fixed; bottom: 12px; right:12px; z-index:10; font-size:12px; color:#a9b4c8;
     background: rgba(0,0,0,0.45); border:1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 6px 10px;
   }
-  canvas { display:block; }
+
+  /* Loader overlay */
+  .loader {
+    position: fixed; inset: 0; display:flex; align-items:center; justify-content:center; flex-direction:column;
+    background: radial-gradient(1200px 800px at 50% 50%, rgba(20,24,32,0.9), rgba(5,6,8,0.95));
+    z-index: 20;
+  }
+  .bar {
+    width: min(520px, 80vw); height: 12px; border-radius: 8px;
+    background: rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.12); overflow: hidden;
+  }
+  .fill {
+    height:100%; width:0%;
+    background: linear-gradient(90deg, #3ad2ff, #7cffc4);
+    transition: width .12s ease;
+  }
+  .label { margin-top:10px; font-size:12px; color:#a9b4c8; }
+  .error { color:#ff8a8a; margin-top: 8px; font-size: 12px; display:none; }
 </style>
 </head>
 <body>
@@ -59,7 +81,7 @@
 
 <!-- Orientation panel -->
 <div class="panel">
-  <div style="font-weight:600; margin-bottom:6px;">Orientation (live)</div>
+  <div style="font-weight:600; margin-bottom:6px;">Camera (live)</div>
   <table>
     <tr><th>Yaw (°)</th><td id="yaw">0</td></tr>
     <tr><th>Pitch (°)</th><td id="pitch">0</td></tr>
@@ -74,6 +96,13 @@
 
 <div class="footer">WASD to move (Walk), Mouse to look (click canvas)</div>
 
+<!-- Loader -->
+<div class="loader" id="loader">
+  <div class="bar"><div class="fill" id="fill"></div></div>
+  <div class="label" id="label">Loading model… 0%</div>
+  <div class="error" id="err">Error: failed to load <code>model.glb</code>. Make sure it’s in the same folder as this page.</div>
+</div>
+
 <script type="module">
   import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
   import { GLTFLoader } from 'https://unpkg.com/three@0.160.0/examples/jsm/loaders/GLTFLoader.js';
@@ -82,6 +111,11 @@
 
   // --- renderer / scene / camera ---
   const app = document.getElementById('app');
+  const loaderEl = document.getElementById('loader');
+  const fillEl = document.getElementById('fill');
+  const labelEl = document.getElementById('label');
+  const errEl = document.getElementById('err');
+
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
   renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
   renderer.setSize(window.innerWidth, window.innerHeight);
@@ -91,7 +125,7 @@
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x0f1115);
 
-  const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 200000);
+  const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 2e6);
   camera.position.set(50, 20, 50);
 
   // Lights
@@ -101,15 +135,17 @@
 
   const dir = new THREE.DirectionalLight(0xffffff, 0.8);
   dir.position.set(100, 200, 100);
-  dir.castShadow = false; // keep VRAM light
   scene.add(dir);
 
-  // Small axis helper at origin
+  // Axis helper at origin (small)
   const axes = new THREE.AxesHelper(5);
   scene.add(axes);
 
-  // Load model
-  const loader = new GLTFLoader();
+  // Load model (must be same folder)
+  const modelURL = './model.glb';
+  const gltfLoader = new GLTFLoader();
+  gltfLoader.setCrossOrigin('anonymous'); // harmless same-origin
+
   let model, bbox, center = new THREE.Vector3(), size = new THREE.Vector3();
   let groundY = 0;
 
@@ -117,56 +153,98 @@
     bbox = new THREE.Box3().setFromObject(object);
     bbox.getCenter(center);
     bbox.getSize(size);
-    // Recenter model to origin so orbit/walk are sensible
-    object.position.sub(center);
-    // Recompute ground after recenter
+    object.position.sub(center); // center the model at origin
     const b2 = new THREE.Box3().setFromObject(object);
-    groundY = b2.min.y; // lowest Y of model
+    groundY = b2.min.y;
   }
 
-  loader.load('model.glb', (gltf) => {
-    model = gltf.scene;
-    scene.add(model);
-    recenter(model);
-    setInitialViews();
-  }, (xhr) => {
-    // could hook a progress bar here: xhr.loaded / xhr.total
-  }, (err) => {
-    console.error('GLB load error', err);
-  });
+  // Progress handling (works even if total unknown: we “ease” to 90%)
+  let fakeP = 0;
+  let fakeTimer;
+  function startFake() {
+    stopFake();
+    fakeP = 0;
+    fakeTimer = setInterval(() => {
+      // ease up to 0.9
+      fakeP = Math.min(0.9, fakeP + 0.015);
+      updateProgress(fakeP, 0);
+    }, 120);
+  }
+  function stopFake() { if (fakeTimer) { clearInterval(fakeTimer); fakeTimer = null; } }
+
+  function updateProgress(frac, bytes) {
+    const pct = Math.round(frac * 100);
+    fillEl.style.width = `${pct}%`;
+    labelEl.textContent = bytes > 0
+      ? `Loading model… ${pct}% (${(bytes/1024/1024).toFixed(1)} MB)`
+      : `Loading model… ${pct}%`;
+  }
+
+  startFake();
+  gltfLoader.load(
+    modelURL,
+    (gltf) => {
+      stopFake();
+      updateProgress(1, 0);
+      setTimeout(() => { loaderEl.style.display = 'none'; }, 150);
+
+      model = gltf.scene;
+      scene.add(model);
+      recenter(model);
+      setInitialViews();
+    },
+    (xhr) => {
+      if (xhr.total && xhr.total > 0) {
+        const frac = xhr.loaded / xhr.total;
+        updateProgress(frac, xhr.loaded);
+      } else {
+        // keep fake progress running
+      }
+    },
+    (err) => {
+      stopFake();
+      errEl.style.display = 'block';
+      labelEl.textContent = 'Load failed';
+      console.error('GLB load error', err);
+    }
+  );
 
   // --- Controls: Orbit and Walk ---
   const orbit = new OrbitControls(camera, renderer.domElement);
   orbit.enableDamping = true;
   orbit.dampingFactor = 0.08;
   orbit.target.set(0, 0, 0);
-  orbit.minDistance = 3;   // will be resized after model loads
-  orbit.maxDistance = 500; // ditto
-  // Keep tilt near flat
-  const smallBand = THREE.MathUtils.degToRad(10);
-  orbit.minPolarAngle = Math.PI/2 - smallBand;
-  orbit.maxPolarAngle = Math.PI/2 + smallBand;
+  orbit.minDistance = 3;
+  orbit.maxDistance = 1000;
+  // keep tilt near flat (±10°)
+  const band = THREE.MathUtils.degToRad(10);
+  orbit.minPolarAngle = Math.PI/2 - band;
+  orbit.maxPolarAngle = Math.PI/2 + band;
 
   const walk = new PointerLockControls(camera, renderer.domElement);
   let walkEnabled = false;
   let moveF = false, moveB = false, moveL = false, moveR = false;
-  const walkSpeed = 25; // units / second, will be scaled to model size
+  const baseWalk = 25; // units/s
   let speedScale = 1;
-  const yOffset = 1.8; // eye height above ground
+  const yEye = 1.8;
 
   function setInitialViews() {
-    // Choose sensible distances based on model size
     const radius = Math.max(size.x, size.z) * 0.75 + 3;
     speedScale = Math.max(5, Math.min(100, Math.max(size.x, size.z) / 50));
-    // Orbit: side-on, not top-down
+
     orbit.target.set(0, 0, 0);
     camera.position.set(radius, Math.max(5, size.y * 0.25), radius);
     orbit.update();
-    // Walk starting point: just outside the model on X axis
-    camera.position.set(radius, Math.max(groundY + yOffset, 1.8), 0);
+
+    // walk start
+    camera.position.set(radius, Math.max(groundY + yEye, 1.8), 0);
+
+    // adjust zoom limits to model size
+    orbit.minDistance = 3;
+    orbit.maxDistance = Math.max(200, radius * 4);
   }
 
-  // UI hooks
+  // UI
   const modeOrbitBtn = document.getElementById('modeOrbit');
   const modeWalkBtn  = document.getElementById('modeWalk');
   const resetBtn     = document.getElementById('resetView');
@@ -206,7 +284,7 @@
     else document.exitFullscreen();
   };
 
-  // Flip axes (rotate model by 180° on X/Y/Z)
+  // Flip axes (rotate model by 180°)
   document.querySelectorAll('button[data-rot]').forEach(btn => {
     btn.onclick = () => {
       if (!model) return;
@@ -227,7 +305,7 @@
   window.addEventListener('keydown', e => onKey(e, true));
   window.addEventListener('keyup',   e => onKey(e, false));
 
-  // Copy orientation
+  // Copy camera orientation
   function rad2deg(r){ return (r * 180 / Math.PI); }
   copyBtn.onclick = () => {
     const e = camera.rotation;
@@ -244,7 +322,7 @@ pos=(${pos.x.toFixed(2)}, ${pos.y.toFixed(2)}, ${pos.z.toFixed(2)})`;
     renderer.setSize(window.innerWidth, window.innerHeight);
   });
 
-  // HUD updates
+  // HUD
   const yawEl = document.getElementById('yaw');
   const pitchEl = document.getElementById('pitch');
   const rollEl = document.getElementById('roll');
@@ -262,15 +340,14 @@ pos=(${pos.x.toFixed(2)}, ${pos.y.toFixed(2)}, ${pos.z.toFixed(2)})`;
 
     if (walkEnabled) {
       const v = walk.getObject();
-      const speed = walkSpeed * speedScale * dt;
+      const speed = baseWalk * speedScale * dt;
       if (moveF) v.translateZ(-speed);
       if (moveB) v.translateZ( speed);
       if (moveL) v.translateX(-speed);
       if (moveR) v.translateX( speed);
 
-      // Lock to ground if desired
       if (lockGroundEl.checked) {
-        const minY = (groundY || 0) + yOffset;
+        const minY = (groundY || 0) + yEye;
         if (v.position.y < minY) v.position.y = minY;
       }
     } else {
