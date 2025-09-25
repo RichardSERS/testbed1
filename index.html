@@ -2,24 +2,15 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>3D Model Viewer</title>
+  <title>3D Model Viewer with Axes</title>
   <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
   <style>
-    body { margin: 0; font-family: sans-serif; background-color: #111; color: white; }
-    model-viewer { width: 100vw; height: 100vh; --progress-bar-color: #00ffff; }
-    .progress-bar { position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
-      background: #222; border: 1px solid #555; border-radius: 5px; width: 300px; height: 20px; overflow: hidden; z-index: 10; }
-    .progress { height: 100%; background: #00ffff; width: 0%; }
-    .loading-text { position: absolute; top: 40px; left: 50%; transform: translateX(-50%);
-      font-size: 16px; color: #aaa; z-index: 10; }
-    .version-box { position: absolute; bottom: 10px; right: 10px; font-size: 12px; color: #666; z-index: 10; }
+    body { margin: 0; background-color: #111; }
+    model-viewer { width: 100vw; height: 100vh; }
   </style>
 </head>
 <body>
-  <div class="progress-bar" id="progressBar"><div class="progress" id="progress"></div></div>
-  <div class="loading-text" id="loadingText">Loading 3D model...</div>
-
-  <model-viewer id="modelViewer"
+  <model-viewer id="viewer"
     src="model.glb"
     alt="3D model"
     camera-controls
@@ -27,34 +18,40 @@
     auto-rotate-delay="2000"
     shadow-intensity="1"
     environment-image="neutral"
-    min-camera-orbit="auto 60deg auto"
-    max-camera-orbit="auto 100deg auto"
-    min-field-of-view="10deg"
-    max-field-of-view="100deg"
-    camera-orbit="0deg 80deg 2.5m"
-    exposure="1.0"
-    rotation="3.1416rad 0rad 0rad">
-    <button slot="fullscreen-button" style="position:absolute;top:10px;right:10px;z-index:10;">⛶</button>
+    exposure="1.0">
   </model-viewer>
 
-  <div class="version-box">v3.2-X</div>
+  <script type="module">
+    import * as THREE from 'https://unpkg.com/three@0.150.1/build/three.module.js';
 
-  <script>
-    const viewer = document.getElementById('modelViewer');
-    const progressBar = document.getElementById('progress');
-    const progressContainer = document.getElementById('progressBar');
-    const loadingText = document.getElementById('loadingText');
+    const viewer = document.querySelector('#viewer');
 
-    viewer.addEventListener('progress', (event) => {
-      const progress = event.detail.totalProgress || 0;
-      progressBar.style.width = `${progress * 100}%`;
-    });
-    viewer.addEventListener('load', () => { 
-      progressContainer.style.display = 'none'; 
-      loadingText.style.display = 'none'; 
-    });
-    viewer.addEventListener('error', () => { 
-      loadingText.textContent = "❌ Failed to load model."; 
+    viewer.addEventListener('load', () => {
+      const scene = viewer.scene;
+
+      // Create axis arrows
+      const arrowX = new THREE.ArrowHelper(
+        new THREE.Vector3(1, 0, 0), // X direction
+        new THREE.Vector3(0, 0, 0), // origin
+        2,                          // length
+        0xff0000                    // red
+      );
+      const arrowY = new THREE.ArrowHelper(
+        new THREE.Vector3(0, 1, 0), // Y direction
+        new THREE.Vector3(0, 0, 0),
+        2,
+        0x00ff00                    // green
+      );
+      const arrowZ = new THREE.ArrowHelper(
+        new THREE.Vector3(0, 0, 1), // Z direction
+        new THREE.Vector3(0, 0, 0),
+        2,
+        0x0000ff                    // blue
+      );
+
+      scene.add(arrowX);
+      scene.add(arrowY);
+      scene.add(arrowZ);
     });
   </script>
 </body>
