@@ -2,10 +2,10 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>3D Model Viewer with Orbit Lock</title>
+  <title>3D Model Viewer – Flat Orbit</title>
   <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
   <style>
-    body { margin: 0; font-family: sans-serif; background: #111; color: white; }
+    body { margin: 0; background: #111; color: white; font-family: sans-serif; }
     model-viewer { width: 100vw; height: 100vh; }
     .version-box {
       position: absolute;
@@ -17,21 +17,9 @@
       padding: 4px 8px;
       border-radius: 6px;
     }
-    .loading-text {
-      position: absolute;
-      top: 10px;
-      left: 10px;
-      background: rgba(0,0,0,0.6);
-      padding: 4px 8px;
-      border-radius: 6px;
-      font-size: 14px;
-      color: #0ff;
-    }
   </style>
 </head>
 <body>
-  <div class="loading-text" id="status">Loading…</div>
-
   <model-viewer id="viewer"
     src="model.glb"
     alt="3D model"
@@ -40,39 +28,22 @@
     auto-rotate-delay="2000"
     shadow-intensity="1"
     environment-image="neutral"
-    min-field-of-view="10deg"
-    max-field-of-view="75deg"
     exposure="1.0"
 
     camera-orbit="0deg 90deg 3m"
+    min-camera-orbit="auto 80deg 0.5m"
+    max-camera-orbit="auto 100deg 6m"
+    min-field-of-view="10deg"
+    max-field-of-view="75deg"
     min-polar-angle="80deg"
     max-polar-angle="100deg"
     min-azimuth-angle="-180deg"
     max-azimuth-angle="180deg">
 
-    <!-- Debug cube (always loads, tiny) -->
-    <model id="debugCube" 
-      src="data:model/gltf-binary;base64,AAAAGGZ0eXBnbHQyAAAAAGd...truncated..." 
-      scale="0.2 0.2 0.2"
-      position="0 0 0">
-    </model>
-
     <button slot="fullscreen-button" style="position:absolute;top:10px;right:10px;z-index:10;">⛶</button>
   </model-viewer>
 
-  <div class="version-box">v-lock-orbit-1</div>
-
-  <script>
-    const viewer = document.getElementById('viewer');
-    const status = document.getElementById('status');
-
-    viewer.addEventListener('load', () => {
-      status.textContent = "✅ Model loaded";
-    });
-
-    viewer.addEventListener('error', (event) => {
-      status.textContent = "❌ Load error: " + (event.detail?.message || "unknown");
-    });
-  </script>
+  <div class="version-box">v3.0 – Flat Orbit</div>
 </body>
 </html>
+
