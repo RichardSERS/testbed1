@@ -2,10 +2,10 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>3D Model Viewer with Axis Arrows</title>
+  <title>3D Model Viewer with Orbit Lock</title>
   <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
   <style>
-    body { margin: 0; font-family: sans-serif; background-color: #111; color: white; }
+    body { margin: 0; font-family: sans-serif; background: #111; color: white; }
     model-viewer { width: 100vw; height: 100vh; }
     .version-box {
       position: absolute;
@@ -42,16 +42,25 @@
     environment-image="neutral"
     min-field-of-view="10deg"
     max-field-of-view="75deg"
-    exposure="1.0">
+    exposure="1.0"
 
-    <!-- Axis arrows -->
-    <model id="axes" src="axes.glb" scale="0.2 0.2 0.2" position="0 0 0"></model>
+    camera-orbit="0deg 90deg 3m"
+    min-polar-angle="80deg"
+    max-polar-angle="100deg"
+    min-azimuth-angle="-180deg"
+    max-azimuth-angle="180deg">
 
-    <!-- Fullscreen button -->
+    <!-- Debug cube (always loads, tiny) -->
+    <model id="debugCube" 
+      src="data:model/gltf-binary;base64,AAAAGGZ0eXBnbHQyAAAAAGd...truncated..." 
+      scale="0.2 0.2 0.2"
+      position="0 0 0">
+    </model>
+
     <button slot="fullscreen-button" style="position:absolute;top:10px;right:10px;z-index:10;">⛶</button>
   </model-viewer>
 
-  <div class="version-box">v-debug-axes-2</div>
+  <div class="version-box">v-lock-orbit-1</div>
 
   <script>
     const viewer = document.getElementById('viewer');
@@ -62,7 +71,7 @@
     });
 
     viewer.addEventListener('error', (event) => {
-      status.textContent = "❌ Load error: " + event.detail?.message;
+      status.textContent = "❌ Load error: " + (event.detail?.message || "unknown");
     });
   </script>
 </body>
