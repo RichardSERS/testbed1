@@ -2,57 +2,124 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>3D Model Viewer</title>
   <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
   <style>
-    html, body {
+    body {
       margin: 0;
-      height: 100%;
-      background-color: #111;
       font-family: sans-serif;
+      background-color: #111;
       color: white;
     }
+
     model-viewer {
       width: 100vw;
       height: 100vh;
-      background-color: #111;
+      --progress-bar-color: #00ffff;
     }
-    #version {
+
+    .progress-bar {
       position: absolute;
       top: 10px;
-      left: 10px;
-      background: rgba(0, 0, 0, 0.6);
-      padding: 4px 10px;
-      border-radius: 6px;
-      font-size: 0.9em;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #222;
+      border: 1px solid #555;
+      border-radius: 5px;
+      width: 300px;
+      height: 20px;
+      overflow: hidden;
+      z-index: 10;
+    }
+
+    .progress {
+      height: 100%;
+      background: #00ffff;
+      width: 0%;
+    }
+
+    .loading-text {
+      position: absolute;
+      top: 40px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 16px;
+      color: #aaa;
+      z-index: 10;
+    }
+
+    .version-box {
+      position: absolute;
+      bottom: 10px;
+      right: 10px;
+      font-size: 12px;
+      color: #666;
+      z-index: 10;
+    }
+
+    button[slot="fullscreen-button"] {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      z-index: 10;
+      font-size: 18px;
+      background: rgba(0,0,0,0.6);
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 4px 8px;
+      cursor: pointer;
     }
   </style>
 </head>
 <body>
-  <div id="version">v7</div>
+  <div class="progress-bar" id="progressBar"><div class="progress" id="progress"></div></div>
+  <div class="loading-text" id="loadingText">Loading 3D model...</div>
 
-  <model-viewer 
+  <model-viewer
+    id="modelViewer"
     src="model.glb"
-    alt="3D Model"
+    alt="3D model"
     camera-controls
-    exposure="1"
-    camera-orbit="0deg 90deg 5m"
-    max-camera-orbit="360deg 110deg auto"
-    min-camera-orbit="0deg 70deg auto"
-    max-field-of-view="70deg"
-    min-field-of-view="15deg"
-    disable-zoom="false"
-    interaction-prompt="none"
-    shadow-intensity="1"
     auto-rotate
     auto-rotate-delay="2000"
+    shadow-intensity="1"
+    environment-image="neutral"
+    camera-orbit="90deg 90deg 3m"
+    min-camera-orbit="auto 60deg auto"
+    max-camera-orbit="auto 100deg auto"
+    min-field-of-view="15deg"
+    max-field-of-view="70deg"
+    disable-zoom="false"
+    exposure="1.0"
+    interaction-prompt="auto"
     ar
+    ar-modes="webxr scene-viewer quick-look"
   >
-    <div class="progress-bar" slot="progress-bar">
-      <div class="update-bar"></div>
-    </div>
-    <button slot="ar-button">View in your space</button>
+    <button slot="fullscreen-button">⛶</button>
   </model-viewer>
+
+  <div class="version-box">v2.2</div>
+
+  <script>
+    const viewer = document.getElementById('modelViewer');
+    const progressBar = document.getElementById('progress');
+    const progressContainer = document.getElementById('progressBar');
+    const loadingText = document.getElementById('loadingText');
+
+    viewer.addEventListener('progress', (event) => {
+      const progress = event.detail.totalProgress || 0;
+      progressBar.style.width = `${progress * 100}%`;
+    });
+
+    viewer.addEventListener('load', () => {
+      progressContainer.style.display = 'none';
+      loadingText.style.display = 'none';
+    });
+
+    viewer.addEventListener('error', () => {
+      loadingText.textContent = "❌ Failed to load model.";
+    });
+  </script>
 </body>
 </html>
