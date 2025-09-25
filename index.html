@@ -1,74 +1,81 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>3D Model Viewer</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>GLB Viewer</title>
   <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
   <style>
-    body {
+    html, body {
       margin: 0;
-      background-color: #121212;
-      color: white;
-      font-family: sans-serif;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      height: 100vh;
-      overflow: hidden;
-    }
-    #loadingBox {
-      position: absolute;
-      top: 20px;
-      left: 20px;
-      background: rgba(0,0,0,0.7);
-      padding: 10px 15px;
-      border-radius: 5px;
-      font-size: 16px;
-      z-index: 10;
-    }
-    #viewer {
-      width: 100%;
       height: 100%;
+      background-color: #000;
+      font-family: sans-serif;
+    }
+
+    model-viewer {
+      width: 100vw;
+      height: 100vh;
+    }
+
+    #loader {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: white;
+      font-size: 1.5em;
+    }
+
+    #version {
+      position: absolute;
+      bottom: 10px;
+      left: 10px;
+      color: white;
+      font-size: 14px;
+      background: rgba(0, 0, 0, 0.5);
+      padding: 4px 8px;
+      border-radius: 4px;
     }
   </style>
 </head>
 <body>
-  <div id="loadingBox">Loading 3D model...</div>
-  <model-viewer id="viewer" src="model.glb"
+  <div id="loader">Loading 3D model...</div>
+
+  <model-viewer id="model"
+    src="model.glb"
     camera-controls
     auto-rotate
     ar
-    exposure="1"
     shadow-intensity="1"
-    camera-orbit="0deg 75deg auto"
-    min-camera-orbit="auto 30deg auto"
+    exposure="1"
+    camera-orbit="0deg 90deg 2m"
+    min-camera-orbit="auto 90deg auto"
     max-camera-orbit="auto 90deg auto"
-    interaction-prompt="none"
-    interaction-policy="allow-when-focused"
-    loading="eager"
-    reveal="auto"
+    interaction-prompt="auto"
+    autoplay
+    alt="3D model"
     disable-zoom="false"
-    alt="3D model">
+    disable-pan
+    style="background-color: #000;">
   </model-viewer>
 
+  <div id="version">v2.1 - Fix orbit + remove LFS</div>
+
   <script>
-    const modelViewer = document.getElementById('viewer');
-    const loadingBox = document.getElementById('loadingBox');
+    const viewer = document.getElementById('model');
+    const loader = document.getElementById('loader');
 
-    modelViewer.addEventListener('progress', (event) => {
-      const progress = Math.round(event.detail.totalProgress * 100);
-      loadingBox.textContent = `Loading 3D model: ${progress}%`;
+    viewer.addEventListener('load', () => {
+      loader.style.display = 'none';
     });
 
-    modelViewer.addEventListener('load', () => {
-      loadingBox.style.display = 'none';
-    });
-
+    // Fallback if model never loads after 30s
     setTimeout(() => {
-      if (loadingBox.style.display !== 'none') {
-        loadingBox.textContent = 'Model viewer fallback triggered';
+      if (loader.style.display !== 'none') {
+        loader.innerText = 'Model failed to load.';
       }
-    }, 15000); // Fallback timeout in case it fails
+    }, 30000);
   </script>
 </body>
 </html>
