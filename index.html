@@ -10,22 +10,90 @@
         background: #111;
         color: white;
         text-align: center;
+        font-family: sans-serif;
       }
+
       model-viewer {
         width: 100vw;
         height: 100vh;
       }
+
+      #loader {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        color: white;
+        font-size: 1.2rem;
+        z-index: 2;
+      }
+
+      .fullscreen-button {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        z-index: 2;
+        background: rgba(255, 255, 255, 0.1);
+        color: white;
+        padding: 10px 14px;
+        border: none;
+        cursor: pointer;
+        border-radius: 4px;
+        font-size: 14px;
+      }
+
+      .fullscreen-button:hover {
+        background: rgba(255, 255, 255, 0.3);
+      }
     </style>
   </head>
   <body>
+    <!-- Loader -->
+    <div id="loader">Loading 3D model...</div>
+
+    <!-- Fullscreen button -->
+    <button class="fullscreen-button" onclick="toggleFullscreen()">Fullscreen</button>
+
+    <!-- Model viewer -->
     <model-viewer
+      id="viewer"
       src="https://sers365-my.sharepoint.com/:u:/g/personal/richard_sers_net_au/EVHqGCHqRjxJtolr8FqJJlEB5cUBCZIannI-a4Pe59VdXQ?download=1"
       alt="3D model"
       auto-rotate
       camera-controls
       background-color="#222"
       exposure="1.1"
-      shadow-intensity="1">
+      shadow-intensity="1"
+      min-camera-orbit="auto auto 1%"
+      max-camera-orbit="auto 90deg auto"
+      zoom-sensitivity="1"
+      ar
+      ar-modes="webxr scene-viewer quick-look"
+      loading="eager"
+      reveal="interaction"
+      onload="document.getElementById('loader').style.display = 'none';">
     </model-viewer>
+
+    <script>
+      const viewer = document.querySelector("model-viewer");
+      const loader = document.getElementById("loader");
+
+      // Hide loader when model loads
+      viewer.addEventListener("load", () => {
+        loader.style.display = "none";
+      });
+
+      // Fullscreen toggle
+      function toggleFullscreen() {
+        const el = viewer;
+        if (!document.fullscreenElement) {
+          el.requestFullscreen().catch((err) => {
+            alert(`Error attempting fullscreen: ${err.message}`);
+          });
+        } else {
+          document.exitFullscreen();
+        }
+      }
+    </script>
   </body>
 </html>
