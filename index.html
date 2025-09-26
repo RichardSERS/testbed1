@@ -2,10 +2,10 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>3D Walk / Orbit Viewer + Progress</title>
+<title>3D Walk / Orbit Viewer + Progress + Defaults</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-<!-- Import map fixes “Failed to resolve module specifier 'three'” -->
+<!-- Import map for ESM URLs (fixes "Failed to resolve module specifier 'three'") -->
 <script type="importmap">
 {
   "imports": {
@@ -16,32 +16,34 @@
 </script>
 
 <style>
-  html, body { height: 100%; margin: 0; background:#0f1115; color:#e8edf2; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
-  #app { position: fixed; inset: 0; }
+  html, body { height:100%; margin:0; background:#0f1115; color:#e8edf2; font-family:system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+  #app { position:fixed; inset:0; }
   canvas { display:block; }
-  .ui { position: fixed; top: 12px; left: 12px; display: flex; gap: 8px; flex-wrap: wrap; z-index: 10;
-        background: rgba(0,0,0,0.45); backdrop-filter: blur(6px); border:1px solid rgba(255,255,255,0.08);
-        border-radius: 12px; padding: 10px; }
-  .ui button, .ui label { font-size: 13px; color:#e8edf2; background:#1b1f2a; border:1px solid #2b3242; border-radius:8px; padding:8px 10px; cursor:pointer; }
+
+  .ui { position:fixed; top:12px; left:12px; display:flex; gap:8px; flex-wrap:wrap; z-index:10;
+        background:rgba(0,0,0,.45); backdrop-filter:blur(6px); border:1px solid rgba(255,255,255,.08);
+        border-radius:12px; padding:10px; }
+  .ui button, .ui label { font-size:13px; color:#e8edf2; background:#1b1f2a; border:1px solid #2b3242; border-radius:8px; padding:8px 10px; cursor:pointer; }
   .ui button:hover { background:#222836; }
   .ui .group { display:flex; gap:6px; align-items:center; }
-  .panel { position: fixed; top: 12px; right: 12px; width: 280px; z-index: 10;
-           background: rgba(0,0,0,0.45); border:1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 10px;
-           font-size: 12px; line-height: 1.4; }
-  .panel table { width: 100%; border-collapse: collapse; }
-  .panel th, .panel td { text-align: left; padding: 2px 4px; }
-  .panel th { color:#a9b4c8; font-weight: 600; }
-  .footer { position: fixed; bottom: 12px; right:12px; z-index:10; font-size:12px; color:#a9b4c8;
-            background: rgba(0,0,0,0.45); border:1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 6px 10px; }
 
-  /* Loader overlay (no UI changes visible until model is ready) */
-  .loader { position: fixed; inset: 0; display:flex; align-items:center; justify-content:center; flex-direction:column;
-            background: radial-gradient(1200px 800px at 50% 50%, rgba(20,24,32,0.9), rgba(5,6,8,0.95)); z-index: 20; }
-  .bar { width: min(520px, 80vw); height: 12px; border-radius: 8px; background: rgba(255,255,255,0.07);
-         border:1px solid rgba(255,255,255,0.12); overflow: hidden; }
-  .fill { height:100%; width:0%; background: linear-gradient(90deg, #3ad2ff, #7cffc4); transition: width .12s ease; }
+  .panel { position:fixed; top:12px; right:12px; width:300px; z-index:10;
+           background:rgba(0,0,0,.45); border:1px solid rgba(255,255,255,.08); border-radius:12px; padding:10px;
+           font-size:12px; line-height:1.4; }
+  .panel table { width:100%; border-collapse:collapse; }
+  .panel th, .panel td { text-align:left; padding:2px 4px; }
+  .panel th { color:#a9b4c8; font-weight:600; }
+
+  .footer { position:fixed; bottom:12px; right:12px; z-index:10; font-size:12px; color:#a9b4c8;
+            background:rgba(0,0,0,.45); border:1px solid rgba(255,255,255,.08); border-radius:8px; padding:6px 10px; }
+
+  /* Loader overlay – blocks UI until the model is ready */
+  .loader { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; flex-direction:column;
+            background:radial-gradient(1200px 800px at 50% 50%, rgba(20,24,32,.9), rgba(5,6,8,.95)); z-index:20; }
+  .bar { width:min(520px, 80vw); height:12px; border-radius:8px; background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.12); overflow:hidden; }
+  .fill { height:100%; width:0%; background:linear-gradient(90deg,#3ad2ff,#7cffc4); transition:width .12s ease; }
   .label { margin-top:10px; font-size:12px; color:#a9b4c8; }
-  .error { color:#ff8a8a; margin-top: 8px; font-size: 12px; display:none; }
+  .error { color:#ff8a8a; margin-top:8px; font-size:12px; display:none; }
 </style>
 </head>
 <body>
@@ -63,6 +65,11 @@
     <button data-rot="z">Flip Z</button>
   </div>
   <div class="group">
+    <button id="saveModel">Save Default (model)</button>
+    <button id="saveWalk">Save Walk Start</button>
+    <button id="clearDefs">Clear Defaults</button>
+  </div>
+  <div class="group">
     <button id="copyOri">Copy Orientation</button>
     <button id="fullscreen">Fullscreen</button>
   </div>
@@ -81,11 +88,15 @@
     <tr><th>Height ↑ ground</th><td id="hgt">0</td></tr>
     <tr><th>Distance to center</th><td id="dist">0</td></tr>
   </table>
+  <div style="margin-top:8px; color:#a9b4c8;">
+    <div id="defModel">Model default: none</div>
+    <div id="defWalk">Walk start: none</div>
+  </div>
 </div>
 
 <div class="footer">WASD to move (Walk), Mouse to look (click canvas)</div>
 
-<!-- Loader overlay -->
+<!-- Loader overlay (progress) -->
 <div class="loader" id="loader">
   <div class="bar"><div class="fill" id="fill"></div></div>
   <div class="label" id="label">Loading model… 0%</div>
@@ -98,16 +109,18 @@
   import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
   import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
 
-  // DOM refs
+  // Elements
   const app = document.getElementById('app');
   const loaderEl = document.getElementById('loader');
   const fillEl = document.getElementById('fill');
   const labelEl = document.getElementById('label');
   const errEl = document.getElementById('err');
+  const defModelEl = document.getElementById('defModel');
+  const defWalkEl  = document.getElementById('defWalk');
 
-  // Renderer & scene
-  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-  renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+  // Renderer/Scene/Camera
+  const renderer = new THREE.WebGLRenderer({ antialias:true, alpha:true });
+  renderer.setPixelRatio(Math.min(2, window.devicePixelRatio||1));
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   app.appendChild(renderer.domElement);
@@ -115,146 +128,203 @@
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x0f1115);
 
-  // Camera
-  const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 2e6);
+  const camera = new THREE.PerspectiveCamera(55, window.innerWidth/window.innerHeight, 0.1, 2e6);
   camera.position.set(50, 20, 50);
 
-  // Lights
+  // Lights & axes
   scene.add(new THREE.HemisphereLight(0xffffff, 0x444444, 0.7));
-  const dir = new THREE.DirectionalLight(0xffffff, 0.8);
-  dir.position.set(100, 200, 100);
-  scene.add(dir);
-
-  // Axis helper
+  const dir = new THREE.DirectionalLight(0xffffff, 0.8); dir.position.set(100,200,100); scene.add(dir);
   scene.add(new THREE.AxesHelper(5));
 
-  // Model URL (same folder)
+  // Model & helpers
   const modelURL = './model.glb';
   const gltfLoader = new GLTFLoader();
 
-  // Progress helpers
-  let fakeP = 0, fakeTimer;
-  const startFake = () => { stopFake(); fakeP = 0; fakeTimer = setInterval(()=>{ fakeP=Math.min(0.9,fakeP+0.015); updateProgress(fakeP,0); },120); };
-  const stopFake  = () => { if (fakeTimer) { clearInterval(fakeTimer); fakeTimer=null; } };
-  const updateProgress = (f, bytes) => {
-    const pct = Math.round(f*100);
-    fillEl.style.width = `${pct}%`;
-    labelEl.textContent = bytes ? `Loading model… ${pct}% (${(bytes/1024/1024).toFixed(1)} MB)` : `Loading model… ${pct}%`;
-  };
+  let model, bbox, center=new THREE.Vector3(), size=new THREE.Vector3(), groundY=0;
 
-  // Centering helpers
-  let model, bbox, center = new THREE.Vector3(), size = new THREE.Vector3(), groundY = 0;
-  function recenter(object) {
+  function recenter(object){
     bbox = new THREE.Box3().setFromObject(object);
-    bbox.getCenter(center);
-    bbox.getSize(size);
-    object.position.sub(center);
+    bbox.getCenter(center); bbox.getSize(size);
+    object.position.sub(center); // center at origin
     const b2 = new THREE.Box3().setFromObject(object);
     groundY = b2.min.y;
   }
 
-  // Controls
+  // --- Progress (true or fake) ---
+  let fakeP=0, fakeTimer;
+  const startFake=()=>{ stopFake(); fakeP=0; fakeTimer=setInterval(()=>{ fakeP=Math.min(0.9, fakeP+0.015); updateProgress(fakeP,0); },120); };
+  const stopFake=()=>{ if(fakeTimer){ clearInterval(fakeTimer); fakeTimer=null; } };
+  const updateProgress=(f,bytes)=>{
+    const pct = Math.round(f*100);
+    fillEl.style.width = pct + '%';
+    labelEl.textContent = bytes ? `Loading model… ${pct}% (${(bytes/1024/1024).toFixed(1)} MB)` : `Loading model… ${pct}%`;
+  };
+
+  // --- Controls: Orbit & Walk ---
   const orbit = new OrbitControls(camera, renderer.domElement);
   orbit.enableDamping = true; orbit.dampingFactor = 0.08;
-  orbit.target.set(0, 0, 0);
-  orbit.minDistance = 3; orbit.maxDistance = 1000;
+  orbit.target.set(0,0,0);
+  orbit.minDistance=3; orbit.maxDistance=1000;
   const band = THREE.MathUtils.degToRad(10);
-  orbit.minPolarAngle = Math.PI/2 - band;
+  orbit.minPolarAngle = Math.PI/2 - band;  // keep near flat
   orbit.maxPolarAngle = Math.PI/2 + band;
 
   const walk = new PointerLockControls(camera, renderer.domElement);
-  let walkEnabled = false, moveF=false, moveB=false, moveL=false, moveR=false;
-  const baseWalk = 25; let speedScale = 1; const yEye = 1.8;
+  let walkEnabled=false, moveF=false, moveB=false, moveL=false, moveR=false;
+  const baseWalk=25; let speedScale=1; const yEye=1.8;
 
-  function setInitialViews() {
+  function setInitialViews(){
     const radius = Math.max(size.x, size.z) * 0.75 + 3;
-    speedScale = Math.max(5, Math.min(100, Math.max(size.x, size.z) / 50));
-    orbit.target.set(0, 0, 0);
-    camera.position.set(radius, Math.max(5, size.y * 0.25), radius);
+    speedScale = Math.max(5, Math.min(100, Math.max(size.x, size.z)/50));
+
+    // Orbit start
+    orbit.target.set(0,0,0);
+    camera.position.set(radius, Math.max(5, size.y*0.25), radius);
     orbit.update();
-    camera.position.set(radius, Math.max(groundY + yEye, 1.8), 0);
+
+    // Walk start (default or saved)
+    const ws = loadWalkStart();
+    if (ws) {
+      camera.position.set(ws.x, ws.y, ws.z);
+      camera.rotation.set(0, THREE.MathUtils.degToRad(ws.yawDeg), 0);
+    } else {
+      camera.position.set(radius, Math.max(groundY + yEye, 1.8), 0);
+    }
+
     orbit.minDistance = 3;
-    orbit.maxDistance = Math.max(200, radius * 4);
+    orbit.maxDistance = Math.max(200, radius*4);
   }
 
-  // UI wires
-  const modeOrbitBtn = document.getElementById('modeOrbit');
-  const modeWalkBtn  = document.getElementById('modeWalk');
-  const resetBtn     = document.getElementById('resetView');
-  const lockGroundEl = document.getElementById('lockGround');
-  const copyBtn      = document.getElementById('copyOri');
-  const fullscreen   = document.getElementById('fullscreen');
+  // --- Defaults in localStorage ---
+  const LS_MODEL = 'dp_modelRot';
+  const LS_WALK  = 'dp_walkStart';
 
-  modeOrbitBtn.onclick = () => { if (walkEnabled) { walk.unlock(); walkEnabled=false; renderer.domElement.style.cursor='grab'; } };
-  modeWalkBtn.onclick  = () => { walk.lock(); };
-  walk.addEventListener('lock',   ()=>{ walkEnabled=true;  renderer.domElement.style.cursor='none'; });
+  function saveModelDefault(){
+    if(!model) return;
+    const r = model.rotation;
+    const val = { x: r.x, y: r.y, z: r.z }; // radians
+    localStorage.setItem(LS_MODEL, JSON.stringify(val));
+    showDefaults();
+  }
+  function loadModelDefault(){
+    try { return JSON.parse(localStorage.getItem(LS_MODEL)); } catch(e){ return null; }
+  }
+  function applyModelDefault(){
+    const d = loadModelDefault();
+    if (d && model) { model.rotation.set(d.x, d.y, d.z); }
+  }
+
+  function saveWalkStart(){
+    const yawDeg = THREE.MathUtils.radToDeg(camera.rotation.y);
+    const val = { x: camera.position.x, y: camera.position.y, z: camera.position.z, yawDeg };
+    localStorage.setItem(LS_WALK, JSON.stringify(val));
+    showDefaults();
+  }
+  function loadWalkStart(){
+    try { return JSON.parse(localStorage.getItem(LS_WALK)); } catch(e){ return null; }
+  }
+
+  function clearDefaults(){
+    localStorage.removeItem(LS_MODEL);
+    localStorage.removeItem(LS_WALK);
+    showDefaults();
+  }
+
+  function showDefaults(){
+    const md = loadModelDefault();
+    defModelEl.textContent = md ? `Model default: rot=(${md.x.toFixed(3)}, ${md.y.toFixed(3)}, ${md.z.toFixed(3)}) rad` : 'Model default: none';
+    const ws = loadWalkStart();
+    defWalkEl.textContent = ws ? `Walk start: (${ws.x.toFixed(2)}, ${ws.y.toFixed(2)}, ${ws.z.toFixed(2)}), yaw=${ws.yawDeg.toFixed(1)}°` : 'Walk start: none';
+  }
+  showDefaults();
+
+  // --- UI wiring ---
+  const modeOrbitBtn=document.getElementById('modeOrbit');
+  const modeWalkBtn =document.getElementById('modeWalk');
+  const resetBtn    =document.getElementById('resetView');
+  const lockGroundEl=document.getElementById('lockGround');
+  const copyBtn     =document.getElementById('copyOri');
+  const fullscreen  =document.getElementById('fullscreen');
+  const saveModelBtn=document.getElementById('saveModel');
+  const saveWalkBtn =document.getElementById('saveWalk');
+  const clearDefsBtn=document.getElementById('clearDefs');
+
+  modeOrbitBtn.onclick=()=>{ if(walkEnabled){ walk.unlock(); walkEnabled=false; renderer.domElement.style.cursor='grab'; } };
+  modeWalkBtn.onclick =()=>{ walk.lock(); };
+  walk.addEventListener('lock', ()=>{ walkEnabled=true; renderer.domElement.style.cursor='none'; });
   walk.addEventListener('unlock', ()=>{ walkEnabled=false; renderer.domElement.style.cursor='grab'; });
 
-  resetBtn.onclick = () => { if(!model) return; recenter(model); setInitialViews(); };
-  fullscreen.onclick = () => { if (!document.fullscreenElement) renderer.domElement.requestFullscreen(); else document.exitFullscreen(); };
+  resetBtn.onclick =()=>{ if(!model) return; recenter(model); applyModelDefault(); setInitialViews(); };
+  fullscreen.onclick=()=>{ if(!document.fullscreenElement) renderer.domElement.requestFullscreen(); else document.exitFullscreen(); };
+  saveModelBtn.onclick=saveModelDefault;
+  saveWalkBtn.onclick =saveWalkStart;
+  clearDefsBtn.onclick=clearDefaults;
 
-  document.querySelectorAll('button[data-rot]').forEach(btn => {
-    btn.onclick = () => { if (!model) return; const ax = btn.dataset.rot;
-      if (ax==='x') model.rotateX(Math.PI);
-      if (ax==='y') model.rotateY(Math.PI);
-      if (ax==='z') model.rotateZ(Math.PI);
+  document.querySelectorAll('button[data-rot]').forEach(btn=>{
+    btn.onclick=()=>{ if(!model) return; const ax=btn.dataset.rot;
+      if(ax==='x') model.rotateX(Math.PI);
+      if(ax==='y') model.rotateY(Math.PI);
+      if(ax==='z') model.rotateZ(Math.PI);
     };
   });
 
-  function onKey(e, down){ if(e.code==='KeyW')moveF=down; if(e.code==='KeyS')moveB=down; if(e.code==='KeyA')moveL=down; if(e.code==='KeyD')moveR=down; }
+  function onKey(e,down){ if(e.code==='KeyW')moveF=down; if(e.code==='KeyS')moveB=down; if(e.code==='KeyA')moveL=down; if(e.code==='KeyD')moveR=down; }
   window.addEventListener('keydown', e=>onKey(e,true));
   window.addEventListener('keyup',   e=>onKey(e,false));
 
-  const rad2deg = r => (r*180/Math.PI);
-  copyBtn.onclick = () => {
+  const rad2deg=r=> (r*180/Math.PI);
+  const yawEl=document.getElementById('yaw'), pitchEl=document.getElementById('pitch'), rollEl=document.getElementById('roll');
+  const cxEl=document.getElementById('cx'), cyEl=document.getElementById('cy'), czEl=document.getElementById('cz');
+  const hgtEl=document.getElementById('hgt'), distEl=document.getElementById('dist');
+
+  copyBtn.onclick=()=>{
     const e=camera.rotation, p=camera.position;
     const t=`yaw=${rad2deg(e.y).toFixed(1)}°, pitch=${rad2deg(e.x).toFixed(1)}°, roll=${rad2deg(e.z).toFixed(1)}°
 pos=(${p.x.toFixed(2)}, ${p.y.toFixed(2)}, ${p.z.toFixed(2)})`;
     navigator.clipboard.writeText(t);
   };
 
-  window.addEventListener('resize', () => {
-    camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix();
+  window.addEventListener('resize', ()=>{
+    camera.aspect=window.innerWidth/window.innerHeight; camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
   });
 
-  const yawEl = document.getElementById('yaw');
-  const pitchEl = document.getElementById('pitch');
-  const rollEl = document.getElementById('roll');
-  const cxEl = document.getElementById('cx');
-  const cyEl = document.getElementById('cy');
-  const czEl = document.getElementById('cz');
-  const hgtEl = document.getElementById('hgt');
-  const distEl = document.getElementById('dist');
-
-  const clock = new THREE.Clock();
+  // Animation
+  const clock=new THREE.Clock();
   function animate(){
     requestAnimationFrame(animate);
-    const dt = Math.min(0.05, clock.getDelta());
-    if (walkEnabled) {
-      const v = walk.getObject(); const s = baseWalk * speedScale * dt;
-      if (moveF) v.translateZ(-s); if (moveB) v.translateZ(s);
-      if (moveL) v.translateX(-s); if (moveR) v.translateX(s);
-      if (lockGroundEl.checked) { const minY = (groundY||0) + yEye; if (v.position.y < minY) v.position.y = minY; }
-    } else {
+    const dt=Math.min(0.05, clock.getDelta());
+    if(walkEnabled){
+      const v=walk.getObject(); const s=baseWalk*speedScale*dt;
+      if(moveF) v.translateZ(-s); if(moveB) v.translateZ(s);
+      if(moveL) v.translateX(-s); if(moveR) v.translateX(s);
+      if(lockGroundEl.checked){ const minY=(groundY||0)+yEye; if(v.position.y<minY) v.position.y=minY; }
+    }else{
       orbit.update();
     }
     const e=camera.rotation, p=camera.position;
-    yawEl.textContent=rad2deg(e.y).toFixed(1); pitchEl.textContent=rad2deg(e.x).toFixed(1); rollEl.textContent=rad2deg(e.z).toFixed(1);
-    cxEl.textContent=p.x.toFixed(2); cyEl.textContent=p.y.toFixed(2); czEl.textContent=p.z.toFixed(2);
-    distEl.textContent=p.length().toFixed(2); hgtEl.textContent=(p.y-(groundY||0)).toFixed(2);
+    yawEl.textContent=rad2deg(e.y).toFixed(1);
+    pitchEl.textContent=rad2deg(e.x).toFixed(1);
+    rollEl.textContent=rad2deg(e.z).toFixed(1);
+    cxEl.textContent=p.x.toFixed(2);
+    cyEl.textContent=p.y.toFixed(2);
+    czEl.textContent=p.z.toFixed(2);
+    distEl.textContent=p.length().toFixed(2);
+    hgtEl.textContent=(p.y-(groundY||0)).toFixed(2);
     renderer.render(scene, camera);
   }
   animate();
 
-  // Start load (show progress immediately)
+  // Start load
   startFake();
   gltfLoader.load(
     modelURL,
-    (gltf) => { stopFake(); updateProgress(1,0); setTimeout(()=>loaderEl.style.display='none',150);
-                model = gltf.scene; scene.add(model); recenter(model); setInitialViews(); },
-    (xhr) => { if (xhr.total>0) updateProgress(xhr.loaded/xhr.total, xhr.loaded); },
-    (err) => { stopFake(); errEl.style.display='block'; labelEl.textContent='Load failed'; console.error('GLB load error', err); }
+    (gltf)=>{
+      stopFake(); updateProgress(1,0); setTimeout(()=>loaderEl.style.display='none',150);
+      model=gltf.scene; scene.add(model); recenter(model); applyModelDefault(); setInitialViews();
+    },
+    (xhr)=>{ if(xhr.total>0) updateProgress(xhr.loaded/xhr.total, xhr.loaded); },
+    (err)=>{ stopFake(); errEl.style.display='block'; labelEl.textContent='Load failed'; console.error('GLB load error', err); }
   );
 </script>
 </body>
